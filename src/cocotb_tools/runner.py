@@ -2084,14 +2084,11 @@ class RyuSim(Runner):
         return [f"-I{include}" for include in includes]
 
     def _get_define_options(self, defines: Mapping[str, object]) -> _Command:
-        return [
-            f"-D{name}={_as_sv_literal(value)}" for name, value in defines.items()
-        ]
+        return [f"-D{name}={_as_sv_literal(value)}" for name, value in defines.items()]
 
     def _get_parameter_options(self, parameters: Mapping[str, object]) -> _Command:
         return [
-            f"-P{name}={_as_sv_literal(value)}"
-            for name, value in parameters.items()
+            f"-P{name}={_as_sv_literal(value)}" for name, value in parameters.items()
         ]
 
     @property
@@ -2134,9 +2131,7 @@ class RyuSim(Runner):
 
     def _build_command(self) -> list[_Command]:
         if self.hdl_toplevel is None:
-            raise ValueError(
-                "hdl_toplevel argument is required for all RyuSim builds"
-            )
+            raise ValueError("hdl_toplevel argument is required for all RyuSim builds")
 
         sources = self._sources + self._verilog_sources
 
@@ -2159,10 +2154,7 @@ class RyuSim(Runner):
             build_args.append("--trace-vcd")
 
         cmds: list[_Command] = []
-        if (
-            outdated(self.sim_file, (source.value for source in sources))
-            or self.always
-        ):
+        if outdated(self.sim_file, (source.value for source in sources)) or self.always:
             cmds = [
                 [
                     "ryusim",
