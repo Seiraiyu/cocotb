@@ -2064,6 +2064,138 @@ class Dsim(Runner):
         return cmds
 
 
+class RyuSim(Runner):
+    """Implementation of :class:`Runner` for RyuSim.
+
+    .. admonition:: Simulator-specific Usage
+
+       * ``hdl_toplevel`` argument to :meth:`.build` is *required*.
+       * Only supports Verilog/SystemVerilog (no VHDL).
+       * Does not support the ``pre_cmd`` argument to :meth:`.test`.
+    """
+
+    supported_gpi_interfaces = {"verilog": ["vpi"]}
+
+    def _simulator_in_path(self) -> None:
+        if shutil.which("ryusim") is None:
+            raise SystemExit("ERROR: ryusim executable not found!")
+
+    def _get_include_options(self, includes: Sequence[PathLike]) -> _Command:
+        return [f"-I{include}" for include in includes]
+
+    def _get_define_options(self, defines: Mapping[str, object]) -> _Command:
+        return [
+            f"-D{name}={_as_sv_literal(value)}" for name, value in defines.items()
+        ]
+
+    def _get_parameter_options(self, parameters: Mapping[str, object]) -> _Command:
+        return [
+            f"-P{name}={_as_sv_literal(value)}"
+            for name, value in parameters.items()
+        ]
+
+    @property
+    def sim_file(self) -> Path:
+        return self.build_dir / f"lib{self.hdl_toplevel}.so"
+
+    def _use_external_viewer(self) -> bool:
+        return True
+
+    def _waves_file(self) -> str | None:
+        return f"{self.hdl_toplevel}.vcd"
+
+    def _ryusim_root(self) -> Path:
+        """Locate RyuSim installation root from binary path."""
+        ryusim_bin = shutil.which("ryusim")
+        assert ryusim_bin is not None
+        return Path(ryusim_bin).resolve().parent.parent
+
+    def _ryusim_vpi_lib(self) -> Path:
+        """Locate RyuSim's VPI shim library."""
+        env_path = os.environ.get("RYUSIM_VPI_LIB")
+        if env_path is not None:
+            return Path(env_path)
+        return self._ryusim_root() / "lib" / "libryusim_vpi.so"
+
+    def _set_env_test(self) -> None:
+        super()._set_env_test()
+        # RyuSim loads cocotb VPI via LD_PRELOAD of its VPI shim
+        vpi_lib = self._ryusim_vpi_lib()
+        existing_preload = self.env.get("LD_PRELOAD", "")
+        self.env["LD_PRELOAD"] = (
+            f"{vpi_lib}:{existing_preload}" if existing_preload else str(vpi_lib)
+        )
+        # Ensure cocotb libs are on the library path
+        lib_dir = str(cocotb_tools.config.libs_dir)
+        existing_ld_path = self.env.get("LD_LIBRARY_PATH", "")
+        self.env["LD_LIBRARY_PATH"] = (
+            f"{lib_dir}:{existing_ld_path}" if existing_ld_path else lib_dir
+        )
+
+    def _build_command(self) -> list[_Command]:
+        if self.hdl_toplevel is None:
+            raise ValueError(
+                "hdl_toplevel argument is required for all RyuSim builds"
+            )
+
+        sources = self._sources + self._verilog_sources
+
+        for source in sources:
+            if source.tag is not Verilog:
+                raise ValueError(
+                    f"{type(self).__qualname__} only supports Verilog. "
+                    f"{str(source.value)!r} cannot be compiled."
+                )
+
+        for arg in self._build_args:
+            if arg.tag not in (Verilog, None):
+                raise ValueError(
+                    f"{type(self).__qualname__} only supports Verilog. "
+                    f"build_args {arg.value!r} cannot be applied."
+                )
+
+        build_args = [arg.value for arg in self._build_args]
+        if self.waves:
+            build_args.append("--trace-vcd")
+
+        cmds: list[_Command] = []
+        if (
+            outdated(self.sim_file, (source.value for source in sources))
+            or self.always
+        ):
+            cmds = [
+                [
+                    "ryusim",
+                    "compile",
+                    "--top",
+                    self.hdl_toplevel,
+                    "--Mdir",
+                    str(self.build_dir),
+                ]
+                + self._get_define_options(self.defines)
+                + self._get_include_options(self.includes)
+                + self._get_parameter_options(self.parameters)
+                + build_args
+                + [str(source_file.value) for source_file in sources]
+            ]
+        else:
+            self.log.warning("Skipping compilation of %s", self.sim_file)
+
+        return cmds
+
+    def _test_command(self) -> list[_Command]:
+        if self.pre_cmd is not None:
+            raise RuntimeError("pre_cmd is not implemented for RyuSim.")
+
+        return [
+            [
+                str(self.sim_file),
+                *self.test_args,
+                *self.plusargs,
+            ]
+        ]
+
+
 def get_runner(simulator_name: str) -> Runner:
     """Return an instance of a runner for *simulator_name*.
 
@@ -2085,6 +2217,7 @@ def get_runner(simulator_name: str) -> Runner:
         "nvc": Nvc,
         "vcs": Vcs,
         "dsim": Dsim,
+        "ryusim": RyuSim,
         # TODO: "activehdl": ActiveHdl,
     }
     try:
