@@ -128,6 +128,7 @@ def lib_name(interface: str, simulator: str) -> str:
         "cvc",
         "nvc",
         "dsim",
+        "ryusim",
     ]
     if simulator not in supported_sims:
         raise ValueError(
