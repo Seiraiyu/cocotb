@@ -140,3 +140,7 @@ class NvcVersion(LooseVersion):
         sim, version, *version_extra = firstline.strip().split(" ")
         assert sim == "nvc"
         return cls(version)
+
+
+class RyusimVersion(LooseVersion):
+    """Version numbering class for RyuSim."""
