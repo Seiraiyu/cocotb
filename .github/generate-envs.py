@@ -186,7 +186,7 @@ ENVS = [
         "lang": "verilog",
         "sim": "ryusim",
         "sim-version": "latest",
-        "os": "ubuntu-22.04",
+        "os": "ubuntu-24.04",
         "python-version": "3.10",
         "group": "experimental",
     },
