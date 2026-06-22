@@ -2106,28 +2106,12 @@ class RyuSim(Runner):
     def _waves_file(self) -> str | None:
         return f"{self.hdl_toplevel}.vcd"
 
-    def _ryusim_root(self) -> Path:
-        """Locate RyuSim installation root from binary path."""
-        ryusim_bin = shutil.which("ryusim")
-        assert ryusim_bin is not None
-        return Path(ryusim_bin).resolve().parent.parent
-
-    def _ryusim_vpi_lib(self) -> Path:
-        """Locate RyuSim's VPI shim library."""
-        env_path = os.environ.get("RYUSIM_VPI_LIB")
-        if env_path is not None:
-            return Path(env_path)
-        return self._ryusim_root() / "lib" / "libryusim_vpi.so"
-
     def _set_env_test(self) -> None:
         super()._set_env_test()
-        # RyuSim loads cocotb VPI via LD_PRELOAD of its VPI shim
-        vpi_lib = self._ryusim_vpi_lib()
-        existing_preload = self.env.get("LD_PRELOAD", "")
-        self.env["LD_PRELOAD"] = (
-            f"{vpi_lib}:{existing_preload}" if existing_preload else str(vpi_lib)
-        )
-        # Ensure cocotb libs are on the library path
+        # The compiled model loads cocotb's VPI library via ``--vpi-load`` (see
+        # _test_command). Make cocotb's libs discoverable so the model can resolve
+        # the VPI library's dependencies. (PYGPI_PYTHON_BIN is set by the base
+        # _set_env_common.)
         lib_dir = str(cocotb_tools.config.libs_dir)
         existing_ld_path = self.env.get("LD_LIBRARY_PATH", "")
         self.env["LD_LIBRARY_PATH"] = (
@@ -2187,6 +2171,8 @@ class RyuSim(Runner):
         return [
             [
                 str(self.sim_file),
+                "--vpi-load",
+                cocotb_tools.config.lib_name_path("vpi", "ryusim").as_posix(),
                 *self.test_args,
                 *self.plusargs,
             ]
