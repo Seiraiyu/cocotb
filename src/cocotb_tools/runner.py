@@ -2094,7 +2094,11 @@ class RyuSim(Runner):
 
     @property
     def sim_file(self) -> Path:
-        return self.build_dir / f"lib{self.hdl_toplevel}.so"
+        # ``sim_hdl_toplevel`` is only set by ``test()``; ``hdl_toplevel`` only by
+        # ``build()``. Resolve whichever is available so ``sim_file`` works both in
+        # the build path (``outdated()`` check) and the test-only path.
+        toplevel = getattr(self, "sim_hdl_toplevel", None) or self.hdl_toplevel
+        return self.build_dir / f"lib{toplevel}.so"
 
     def _use_external_viewer(self) -> bool:
         return True
