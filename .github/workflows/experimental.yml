@@ -17,7 +17,7 @@ on:
 
 jobs:
   test_dev:
-    if: github.repository == 'cocotb/cocotb'
+    if: github.repository == 'cocotb/cocotb' || github.repository == 'Seiraiyu/cocotb'  # THROWAWAY: fork CI test, do NOT merge to PR
     name: Regression Tests
     uses: ./.github/workflows/regression-tests.yml
     with:
