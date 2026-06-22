@@ -14,6 +14,8 @@ on:
     branches:
       - master
       - "stable/**"
+      # Throwaway CI branch (abandon after use) to run dev CI on demand.
+      - "ci-throwaway-ryusim"
   pull_request:
     branches:
       - master
