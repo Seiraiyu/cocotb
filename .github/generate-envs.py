@@ -185,8 +185,8 @@ ENVS = [
     {
         "lang": "verilog",
         "sim": "ryusim",
-        "sim-version": "latest",
-        "os": "ubuntu-22.04",
+        "sim-version": "2.1.15",
+        "os": "ubuntu-24.04",
         "python-version": "3.10",
         "group": "experimental",
     },
@@ -562,6 +562,7 @@ def main() -> int:
 
     if args.group is not None and args.group != "":
         selected_envs = [t for t in ENVS if "group" in t and t["group"] == args.group]
+        selected_envs = [t for t in selected_envs if t["sim"] == "ryusim"]  # PROBE ONLY
     else:
         # Return all tasks if no group is selected.
         selected_envs = ENVS
