@@ -44,6 +44,8 @@ else
     TOPMODULE_ARG :=
 endif
 
+COMPILE_ARGS += --timescale $(COCOTB_HDL_TIMEUNIT)/$(COCOTB_HDL_TIMEPRECISION)
+
 ifeq ($(WAVES), 1)
     COMPILE_ARGS += --trace-vcd
 endif
