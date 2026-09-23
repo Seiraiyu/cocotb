@@ -649,7 +649,7 @@ Reported Issues for this Simulator
 RyuSim
 ======
 
-RyuSim compiles synthesizable SystemVerilog to C++ and runs the resulting
+RyuSim compiles SystemVerilog to C++ and runs the resulting
 simulation through cocotb's VPI interface.
 
 In order to use this simulator, set :make:var:`SIM` to ``ryusim``:
@@ -667,9 +667,18 @@ see :class:`cocotb_tools.runner.RyuSim`.
 
     A working installation of RyuSim is required, with the ``ryusim`` executable on the :envvar:`PATH`.
 
-RyuSim only supports Verilog/SystemVerilog (no VHDL) through the VPI interface,
-and only accepts synthesizable constructs
-(no ``initial`` blocks, ``#`` delays, ``fork``/``join``, or ``$readmemh``).
+RyuSim only supports Verilog/SystemVerilog (no VHDL) through the VPI interface.
+
+The following parts of IEEE 1800-2023 are not implemented:
+switch-level modelling (clause 28; gate-level support covers the basic gate
+primitives only), user-defined primitives (clause 29), ``specify`` blocks
+(clause 30), timing checks (clause 31), SDF back-annotation (clause 32),
+design configurations (clause 33), and the VPI assertion, coverage-control and
+data-read APIs (clauses 39-41).
+
+RyuSim rejects anything it does not implement at compile time
+(``--unsupported`` defaults to ``error``), so an unsupported construct is
+always a hard compile error rather than a silent mis-simulation.
 
 .. _sim-ryusim-waveforms:
 
